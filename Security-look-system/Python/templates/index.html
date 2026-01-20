@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security System Control Panel</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to right, #f2f5e9, #657ef2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 26px;
+            color: #444;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: #7289da;
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+        }
+
+        button:hover {
+            background: #6682e8;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        p {
+            font-size: 16px;
+            margin: 10px 0;
+            color: #333;
+        }
+
+        .input-container {
+            margin: 20px 0;
+        }
+
+        input[type="text"] {
+            width: calc(100% - 24px);
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .status {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        async function fetchAPI(endpoint, method = 'POST', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (body) options.body = JSON.stringify(body);
+
+            const response = await fetch(endpoint, options);
+            if (response.ok) {
+                return await response.json();
+            } else {
+                throw new Error(`Failed to call ${endpoint}`);
+            }
+        }
+
+        async function stopBuzzer() {
+            try {
+                const data = await fetchAPI('/stop_buzzer');
+                alert(data.status);
+            } catch (error) {
+                alert('Error stopping buzzer.');
+            }
+        }
+
+        async function turnLightOff() {
+            try {
+                const data = await fetchAPI('/turn_light_off');
+                alert(data.status);
+            } catch (error) {
+                alert('Error turning light off.');
+            }
+        }
+
+        async function changePasscode() {
+            const newPasscode = document.getElementById('new-passcode').value;
+            try {
+                const data = await fetchAPI('/change_passcode', 'POST', { new_passcode: newPasscode });
+                alert(data.status);
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        const socket = io();
+        let lastActivationCode = null;
+
+        // Listen for activation code updates
+        socket.on("notifications", (data) => {
+            if (data.success) {
+                if (data.activation_code !== lastActivationCode) {
+                    console.log("Activation code update received:", data);
+                    lastActivationCode = data.activation_code;
+
+                    // Update the DOM with the new activation code
+                    const activationCodeElement = document.getElementById("activation-code");
+                    if (activationCodeElement) {
+                        activationCodeElement.textContent = data.activation_code || "No activation code available";
+                    } else {
+                        console.warn("Element with ID 'activation-code' not found.");
+                    }
+
+                    if (data.message) {
+                        alert(`Notification: ${data.message}`);
+                    }
+                }
+            } else {
+                console.error("Failed to receive update. Error message:", data.message || "No error message provided.");
+            }
+        });
+
+        socket.on("security", (data) => {
+            if (data) {
+            console.log(data);
+                if (data.message) {
+                    alert(`Notification: ${data.message}`);
+                }
+            }
+        });
+
+        socket.on("access", (data) => {
+            if (data) {
+            console.log(data);
+                if (data.message) {
+                    alert(`Notification: ${data.message}`);
+                }
+            }
+        });
+
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Security System Control Panel</h1>
+        <p>Your activation code is: <span id="activation-code">{{activation_code}}</span></p>
+        <button onclick="stopBuzzer()">Turn Off Buzzer</button>
+        <button onclick="turnLightOff()">Turn Light Off</button>
+        <!--<div class="input-container">
+            <p>Your passcode must be 4 characters, using digits, A-D, * or #</p>
+            <input type="text" id="new-passcode" placeholder="Enter new passcode">
+            <button onclick="changePasscode()">Change Passcode</button>
+        </div> -->
+    </div> 
+</body>
+</html> 
