@@ -1,104 +1,107 @@
 # Security Lock System
 
-The **Security Lock System** is an embedded solution designed to provide secure, convenient access to homes. Built around an **Arduino Mega microcontroller**, it integrates:
+![Arduino](https://img.shields.io/badge/Arduino-Mega-teal) ![Flask](https://img.shields.io/badge/Flask-3.1-black) ![Python](https://img.shields.io/badge/Python-3.x-blue) ![Redis](https://img.shields.io/badge/Redis-8.1-red)
 
-- A motion sensor for activity detection  
-- A user-friendly keypad that only activates when motion is detected to save energy  
-- An LCD for interaction  
-- A servo motor controlling the sliding lock mechanism  
-- Bluetooth communication via an **HC-05 module** linking the system to a **Flask web interface** for remote control and real-time notifications  
+An embedded access-control system built around an Arduino Mega, combining a motion-activated keypad, an LCD, a servo-driven lock, and a Bluetooth link to a Flask web dashboard for remote monitoring and control. After too many failed password attempts, the system locks itself and requires a server-generated activation code — sent to the Arduino over Bluetooth and stored in Redis — for re-entry.
 
-The system generates **unique activation codes** for secure re-entry, stored in **Redis**, and logs activities for added security. This smart solution offers peace of mind, eliminating the hassle of misplaced keys or unauthorized access.
+## Demo
 
----
+![Web control panel](media/demo_screenshot.png)
+
+*The Flask-based control panel: displays the current activation code and lets a user remotely turn off the buzzer or the light.*
+
+*(Add a photo of the physical hardware build to `media/` for full documentation.)*
 
 ## Features
 
-- **Remote Control:** Control lock functions from a simple web interface built using Flask.  
-- **Real-time Notifications:** Receive updates on activation codes, security events, and access logs via Socket.IO.  
-- **Activation Code Storage:** Generated activation codes are securely stored in Redis for re-entry.  
-- **Command Support:** Send commands to turn off the buzzer, light, or update passcodes.  
-- **Integration with Arduino:** Powered by an Arduino, communicating via Bluetooth to the web interface.  
+- **Motion-activated keypad** — the keypad/LCD only wake on motion detection, saving power
+- **Lockout + activation code recovery** — after 3 failed attempts, the system locks and requires a unique, server-generated activation code to unlock
+- **Remote control via web dashboard** — turn off the buzzer or light remotely through a Flask-based control panel
+- **Real-time notifications** — Socket.IO pushes activation code updates and security alerts (wrong password, access granted) to the browser instantly
+- **Persistent activation codes** — stored in Redis so codes survive server restarts
+- **Bluetooth communication** — HC-05 module links the Arduino to the Flask backend
 
----
+## How It Works
 
-## Technologies Used
+1. **Idle state** — the motion sensor wakes the LCD/keypad only when someone approaches.
+2. **Password entry** — the user enters a 4-character password on the keypad (digits, A–D, `*`, `#`).
+3. **Access granted** — on a correct password, the servo unlocks the door and the Flask backend is notified over Bluetooth.
+4. **Lockout** — after 3 wrong attempts, the buzzer and red LED activate, and the Arduino signals `"System Locked"` to the backend.
+5. **Activation code recovery** — Flask generates a random 4-character activation code, stores it in Redis, and sends it back to the Arduino over Bluetooth. The code is also pushed live to the web dashboard via Socket.IO.
+6. **Unlock** — entering the matching activation code on the keypad unlocks the system and resets it to idle.
 
-- **Arduino:** The embedded system managing the lock mechanism and sensors  
-- **Flask:** Web framework for building the control panel  
-- **Socket.IO:** Real-time communication for notifications and updates  
-- **Redis:** Secure storage of activation codes  
-- **HTML/CSS/JavaScript:** Frontend for the user interface  
-- **HC-05 Bluetooth Module:** Communication between Arduino and Flask web app  
-
----
-
-## Project Structure
+## Repository Structure
 
 ```
 security-lock-system/
- ├─ python/
- │    ├─ app.py
- │    └─ templates/
- │          └─ index.html
- ├─ arduino/
- │    └─ lock_system.ino
- └─ README.md
+├─ README.md
+├─ requirements.txt
+├─ arduino/
+│  └─ lock_system.ino
+├─ media/
+│  └─ demo_screenshot.png
+└─ python/
+   ├─ app.py
+   └─ templates/
+      └─ index.html
 ```
 
----
+## Requirements
 
-## Setup
+- Flask==3.1.3
+- Flask-SocketIO==5.6.1
+- pyserial==3.5
+- redis==8.1.0
+- A running Redis server (local or remote)
+- Arduino Mega with: keypad, LCD (I2C), servo motor, motion sensor, RGB LED, buzzer, HC-05 Bluetooth module
 
-### Prerequisites
-
-- Python 3.x  
-- Flask  
-- Redis  
-- Socket.IO (for real-time communication)  
-
-### Installation
+## How to Run
 
 1. Clone the repository:
-
-```bash
-git clone https://github.com/USERNAME/security-lock-system.git
-```
-
-2. Navigate to the Python folder and install required Python libraries:
-
-```bash
-cd security-lock-system/python
-pip install -r requirements.txt
-```
-
-> (Create `requirements.txt` with: `Flask`, `Flask-SocketIO`, `redis`)
-
-3. Set up Redis server (local or remote).  
-4. Upload the Arduino code to your Arduino board (see the `arduino/` folder).  
-5. Run the Flask app:
-
-```bash
-python app.py
-```
-
-6. Open the website in your browser at: `http://127.0.0.1:5000/`
-
----
+   ```bash
+   git clone https://github.com/JanaM-10/security-lock-system.git
+   cd security-lock-system
+   ```
+2. Install Python dependencies:
+   ```bash
+   cd python
+   pip install -r ../requirements.txt
+   ```
+3. Set up a Redis server (local or remote) and make sure it's running.
+4. Upload `arduino/lock_system.ino` to your Arduino board using the Arduino IDE.
+5. Update the Bluetooth COM port in `app.py` to match your setup.
+6. Run the Flask app:
+   ```bash
+   python app.py
+   ```
+7. Open the dashboard at: `http://127.0.0.1/`
 
 ## Usage
 
-- Access the control panel via the Flask web interface  
-- Monitor activation codes and security events  
-- Send commands to:
-  - Turn off the buzzer  
-  - Turn off the light  
-  - Update passcodes  
-
----
+- View the current activation code and receive live security notifications from the web dashboard
+- Remotely turn off the buzzer or light
+- Monitor access attempts and lockout events in real time
 
 ## Notes
 
-- Ensure the Arduino is connected via Bluetooth (HC-05) to the computer running Flask  
-- Activation codes are stored securely in Redis and updated in real-time  
-- Motion detection ensures energy-saving operation
+- Ensure the Arduino is paired and connected via Bluetooth (HC-05) before starting the Flask app
+- Activation codes are generated server-side and stored in Redis; they update live on the dashboard
+- Motion detection keeps the keypad/LCD off when idle to save power
+
+## Future Improvements
+
+- Move Redis host and serial port configuration to environment variables instead of hardcoding
+- Add physical build photos to `media/`
+- Finish and re-enable the in-browser passcode-change feature (currently backend-only)
+- Add automatic COM-port detection instead of a fixed port
+
+## Components Used
+
+- Arduino Mega
+- 4×4 Matrix Keypad
+- 16×2 I2C LCD Display
+- Servo Motor (lock mechanism)
+- PIR Motion Sensor
+- RGB LED
+- Buzzer
+- HC-05 Bluetooth Module
