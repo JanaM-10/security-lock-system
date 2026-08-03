@@ -18,6 +18,9 @@ bool systemLocked = false;
 bool awaitingActivationCode = false;
 String activationCode = "";  
 String keyCode = "";
+
+// Demo password used for development purposes.
+// Change this password before deploying the system.
 Password password = Password("2000");
 
 byte maxPasswordLength = 4;
