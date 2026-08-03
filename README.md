@@ -10,8 +10,6 @@ An embedded access-control system built around an Arduino Mega, combining a moti
 
 *The Flask-based control panel: displays the current activation code and lets a user remotely turn off the buzzer or the light.*
 
-*(Add a photo of the physical hardware build to `media/` for full documentation.)*
-
 ## Features
 
 - **Motion-activated keypad** — the keypad/LCD only wake on motion detection, saving power
